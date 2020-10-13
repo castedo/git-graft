@@ -1,0 +1,41 @@
+#!/bin/bash
+set -o errexit
+
+function on_errexit {
+    git status
+    echo PR graft failed
+}
+trap on_errexit EXIT
+
+TOPIC_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+if [[ $TOPIC_BRANCH == pr/* ]]; then
+    echo "You're on a PR branch, switch to a topic branch"
+    exit 1
+fi
+
+if [[ "$(git status --porcelain)" != "" ]]; then
+    echo "There are uncommitted changes; commit first."
+    exit 1
+fi
+
+PR_BRANCH="pr/$TOPIC_BRANCH"
+BASE=$(git merge-base HEAD main)
+
+if git checkout $PR_BRANCH; then
+    OLD_PR=$(git rev-parse HEAD)
+    git-smoosh $TOPIC_BRANCH
+    git rebase -i $BASE
+    git-graft-add $TOPIC_BRANCH HEAD
+    git replace -d $OLD_PR
+else
+    git checkout -b $PR_BRANCH $BASE
+    git-smoosh $TOPIC_BRANCH
+    git-graft-add $TOPIC_BRANCH HEAD
+fi
+
+trap - EXIT
+
+echo Make new commits on branch $TOPIC_BRANCH and use $(basename $0) to update $PR_BRANCH
+echo You are on branch $(git rev-parse HEAD)
+
