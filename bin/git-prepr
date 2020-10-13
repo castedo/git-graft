@@ -3,7 +3,7 @@ set -o errexit
 
 function on_errexit {
     git status
-    echo PR graft failed
+    echo "git prep request (with pre-PR) failed"
 }
 trap on_errexit EXIT
 
@@ -22,17 +22,40 @@ fi
 PR_BRANCH="pr/$TOPIC_BRANCH"
 BASE=$(git merge-base HEAD main)
 
-if git checkout $PR_BRANCH; then
+if ! git cat-file -e $BASE:./ ; then
+    echo "First change to a directory found in branch $BASE."
+    exit 1
+fi
+
+if git checkout $PR_BRANCH ; then
     OLD_PR=$(git rev-parse HEAD)
-    git-smoosh $TOPIC_BRANCH
+    git merge --squash --log $TOPIC_BRANCH
+    git commit
     git rebase -i $BASE
-    git-graft-add $TOPIC_BRANCH HEAD
+    git-isograft $TOPIC_BRANCH
     git replace -d $OLD_PR
 else
     git checkout -b $PR_BRANCH $BASE
-    git-smoosh $TOPIC_BRANCH
-    git-graft-add $TOPIC_BRANCH HEAD
+    git merge --squash --log $TOPIC_BRANCH
+    git commit
+    git-isograft $TOPIC_BRANCH HEAD
 fi
+
+if git checkout $PR_BRANCH ; then
+    OLD_PR=$(git rev-parse HEAD)
+else
+    git checkout -b $PR_BRANCH $BASE
+fi
+
+git merge --squash --log $TOPIC_BRANCH
+git commit
+
+if [[ "$OLD_PR" != "" ]]; then
+    git rebase -i $BASE
+    git replace -d $OLD_PR
+fi
+
+git-isograft $TOPIC_BRANCH
 
 trap - EXIT
 
