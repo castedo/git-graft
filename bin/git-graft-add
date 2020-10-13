@@ -1,0 +1,29 @@
+#!/bin/bash
+set -o errexit
+
+if [[ -z "$1" ]]; then
+  THIS_SCRIPT=$'\u001b[1m'"$(basename $0)"$'\u001b[0m'
+  echo "Usage: $THIS_SCRIPT topic_branch [commit_grafted]"
+  exit 1
+fi
+
+TOPIC_BRANCH=$1
+COMMIT=$2
+if [[ -z "$COMMIT" ]]; then
+    COMMIT="HEAD"
+fi
+
+TREE=$(git rev-parse $COMMIT^{tree})
+
+for H in $(git rev-list $TOPIC_BRANCH ^$COMMIT); do
+    if [[ "$TREE" == "$(git rev-parse $H^{tree})" ]]; then
+        PARENTS=$(git rev-parse $H^@)
+        PARENTS+=" $(git rev-parse $COMMIT)"
+        git replace --graft $H $PARENTS
+        exit 0;
+    fi
+done
+
+echo No commit found in branch $TOPIC_BRANCH with same tree as $COMMIT
+exit 1;
+
