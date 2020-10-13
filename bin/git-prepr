@@ -39,6 +39,7 @@ cd $PWD # avoid annoying git failure with recreated directories
 git merge --squash --log $TOPIC_BRANCH
 cd $PWD
 git commit
+cd $PWD
 
 if [[ "$OLD_PR" != "" ]]; then
     git rebase -i $BASE
@@ -51,5 +52,5 @@ git-isograft $TOPIC_BRANCH
 trap - EXIT
 
 echo Make new commits on branch $TOPIC_BRANCH and use $(basename $0) to update $PR_BRANCH
-echo You are on branch $(git rev-parse HEAD)
+echo You are on branch $(git rev-parse --abbrev-ref HEAD)
 
