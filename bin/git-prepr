@@ -1,0 +1,61 @@
+#!/bin/bash
+set -o errexit
+
+function on_errexit {
+    git status
+    echo "git prep request (with pre-PR) failed"
+}
+trap on_errexit EXIT
+
+TOPIC_BRANCH=$(git rev-parse --abbrev-ref HEAD)
+
+if [[ $TOPIC_BRANCH == pr/* ]]; then
+    echo "You're on a PR branch, switch to a topic branch"
+    exit 1
+fi
+
+if [[ "$(git status --porcelain)" != "" ]]; then
+    echo "There are uncommitted changes; commit first."
+    exit 1
+fi
+
+PR_BRANCH="pr/$TOPIC_BRANCH"
+BASE=$(git merge-base HEAD main)
+
+if ! git cat-file -e $BASE:./ ; then
+    echo "First change to a directory found in branch $BASE."
+    exit 1
+fi
+
+OLD_PR=$(git rev-parse --quiet --verify $PR_BRANCH || true)
+
+if [[ "$OLD_PR" != "" ]]; then
+    git checkout $PR_BRANCH
+else
+    git checkout -b $PR_BRANCH $BASE
+fi
+cd $PWD # avoid annoying git failure with recreated directories
+
+git merge --squash $TOPIC_BRANCH
+cd $PWD
+MSG="
+# This will become a commit message for branch $PR_BRANCH
+# Combine the commit messages below from branch $TOPIC_BRANCH
+"
+CMD="git log --format=%s%n%n%b $TOPIC_BRANCH ^HEAD ^main"
+git commit -F <(echo "$MSG"; $CMD) --edit
+cd $PWD
+
+if [[ "$OLD_PR" != "" ]]; then
+    git replace -d $OLD_PR
+    git rebase -i $BASE
+    cd $PWD
+fi
+
+git-isograft $TOPIC_BRANCH
+
+trap - EXIT
+
+echo Make new commits on branch $TOPIC_BRANCH and use $(basename $0) to update $PR_BRANCH
+echo You are on branch $(git rev-parse --abbrev-ref HEAD)
+
