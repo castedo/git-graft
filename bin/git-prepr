@@ -29,20 +29,6 @@ fi
 
 if git checkout $PR_BRANCH ; then
     OLD_PR=$(git rev-parse HEAD)
-    git merge --squash --log $TOPIC_BRANCH
-    git commit
-    git rebase -i $BASE
-    git-isograft $TOPIC_BRANCH
-    git replace -d $OLD_PR
-else
-    git checkout -b $PR_BRANCH $BASE
-    git merge --squash --log $TOPIC_BRANCH
-    git commit
-    git-isograft $TOPIC_BRANCH HEAD
-fi
-
-if git checkout $PR_BRANCH ; then
-    OLD_PR=$(git rev-parse HEAD)
 else
     git checkout -b $PR_BRANCH $BASE
 fi
