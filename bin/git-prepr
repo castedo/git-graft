@@ -28,19 +28,22 @@ if ! git cat-file -e $BASE:./ ; then
 fi
 
 OLD_PR=$(git rev-parse --quiet --verify $PR_BRANCH || true)
+FIX_CD='cd $(pwd)' # avoid annoying git failure with recreated directories
 
 if [[ "$OLD_PR" != "" ]]; then
     git checkout $PR_BRANCH
 else
     git checkout -b $PR_BRANCH $BASE
-    cd $(pwd) # avoid annoying git failure with newly created directories
 fi
+$FIX_CD
 
 git merge --squash --log $TOPIC_BRANCH
+$FIX_CD
 git commit
 
 if [[ "$OLD_PR" != "" ]]; then
     git rebase -i $BASE
+    $FIX_CD
     git replace -d $OLD_PR
 fi
 
