@@ -42,9 +42,9 @@ git commit
 cd $PWD
 
 if [[ "$OLD_PR" != "" ]]; then
+    git replace -d $OLD_PR
     git rebase -i $BASE
     cd $PWD
-    git replace -d $OLD_PR
 fi
 
 git-isograft $TOPIC_BRANCH
