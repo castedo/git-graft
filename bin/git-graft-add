@@ -17,9 +17,8 @@ TREE=$(git rev-parse $COMMIT^{tree})
 
 for H in $(git rev-list $TOPIC_BRANCH ^$COMMIT); do
     if [[ "$TREE" == "$(git rev-parse $H^{tree})" ]]; then
-        PARENTS=$(git rev-parse $H^@)
-        PARENTS+=" $(git rev-parse $COMMIT)"
-        git replace --graft $H $PARENTS
+        NEW_PARENTS="$(git rev-parse $COMMIT^@) $H"
+        git replace --graft $COMMIT $NEW_PARENTS
         exit 0;
     fi
 done
