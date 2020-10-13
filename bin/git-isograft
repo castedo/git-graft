@@ -3,11 +3,14 @@ set -o errexit
 
 if [[ -z "$1" ]]; then
   THIS_SCRIPT=$'\u001b[1m'"$(basename $0)"$'\u001b[0m'
-  echo "Usage: $THIS_SCRIPT topic_branch [commit_grafted]"
+  echo "Usage: $THIS_SCRIPT branch_src [commit_target]"
+  echo "Searches branch_src for a commit with same tree as commit_target and"
+  echo "grafts that branch_src commit as another parent to commit_target."
+  echo "commit_target defaults to HEAD."
   exit 1
 fi
 
-TOPIC_BRANCH=$1
+BRANCH=$1
 COMMIT=$2
 if [[ -z "$COMMIT" ]]; then
     COMMIT="HEAD"
@@ -15,7 +18,7 @@ fi
 
 TREE=$(git rev-parse $COMMIT^{tree})
 
-for H in $(git rev-list $TOPIC_BRANCH ^$COMMIT); do
+for H in $(git rev-list $BRANCH ^$COMMIT); do
     if [[ "$TREE" == "$(git rev-parse $H^{tree})" ]]; then
         NEW_PARENTS="$(git rev-parse $COMMIT^@) $H"
         git replace --graft $COMMIT $NEW_PARENTS
@@ -23,6 +26,6 @@ for H in $(git rev-list $TOPIC_BRANCH ^$COMMIT); do
     fi
 done
 
-echo No commit found in branch $TOPIC_BRANCH with same tree as $COMMIT
+echo No commit found in branch $BRANCH with same tree as $COMMIT
 exit 1;
 
