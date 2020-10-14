@@ -52,7 +52,7 @@ if [[ "$OLD_PR" != "" ]]; then
     cd $PWD
 fi
 
-git-isograft $TOPIC_BRANCH
+git replace --graft HEAD HEAD^ $TOPIC_BRANCH
 
 trap - EXIT
 
